@@ -3,7 +3,7 @@
 ** Author: Marin Alcaraz
 ** Mail   <marin.alcaraz@gmail.com>
 ** Started on  Mon Feb 09 18:47:17 2015 Marin Alcaraz
-** Last update Tue Feb 10 16:51:05 2015 Marin Alcaraz
+** Last update Tue Feb 10 19:19:47 2015 Marin Alcaraz
  */
 
 // Based on:
@@ -22,9 +22,13 @@ package parser
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"regexp"
 	"strings"
 )
+
+var re = regexp.MustCompile("\\s+")
 
 // Lexems are items conformed by a type and a value
 
@@ -56,23 +60,46 @@ func tokenize() []string {
 
 		//Curate the CURRENTSTRING
 		curatedInput = strings.Replace(currentStr, "(", " ( ", -1)
-		//Curate the CURATEDSTRING to preserve the old changes
+		//Now the same for CURATEDINPUT for the ) symbol
 		curatedInput = strings.Replace(curatedInput, ")", " ) ", -1)
-
+		//Now the same for CURATEDINPUT for the ) symbol
+		fmt.Printf("|%s|\n", curatedInput)
 		//Append to the slice that contains our code, we will preserve it
 		//on every iteration
+		curatedInput = re.ReplaceAllString(curatedInput, " ")
+		curatedInput = strings.TrimSpace(curatedInput)
 		program = append(program, strings.Split(curatedInput, " ")...)
 	}
 	return program
 }
 
-func buildAST(tokens []string) []string {
-	return tokens
+//Can I use pointers?
+func pop(slice []string) (string, []string) {
+	fmt.Println(slice)
+	element := slice[0]
+	slice = slice[1:]
+	return element, slice
+}
+
+func buildAST(tokens []string) ([]string, error) {
+	//Read an expression from a sequence of tokens."
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("Unexpected EOF")
+	}
+	_, tokens = pop(tokens)
+	for tokens != nil {
+		//fmt.Println("CurrentToken:", currentToken)
+		buildAST(tokens)
+	}
+	return tokens, nil
 }
 
 // Parse function triggers the sequence of building an AST, it returns the AST
 func Parse() []string {
 	tokens := tokenize()
-	ast := buildAST(tokens)
+	ast, err := buildAST(tokens)
+	if err != nil {
+		fmt.Println("[!] Parser Error: %s", err)
+	}
 	return ast
 }
