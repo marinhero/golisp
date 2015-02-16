@@ -3,7 +3,7 @@
 ** Author: Marin Alcaraz
 ** Mail   <marin.alcaraz@gmail.com>
 ** Started on  Mon Feb 09 18:47:17 2015 Marin Alcaraz
-** Last update Tue Feb 10 19:19:47 2015 Marin Alcaraz
+** Last update Mon Feb 16 18:36:53 2015 Marin Alcaraz
  */
 
 // Based on:
@@ -25,19 +25,18 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
 var re = regexp.MustCompile("\\s+")
 
-// Lexems are items conformed by a type and a value
+// nodes are items conformed by a type and a value
 
-//Lexem type
-
-type lLexem struct {
-	lType string
-	//Not shure of this...
-	value interface{}
+type node struct {
+	number int
+	symbol string
+	child  []node
 }
 
 func tokenize() []string {
@@ -63,43 +62,78 @@ func tokenize() []string {
 		//Now the same for CURATEDINPUT for the ) symbol
 		curatedInput = strings.Replace(curatedInput, ")", " ) ", -1)
 		//Now the same for CURATEDINPUT for the ) symbol
-		fmt.Printf("|%s|\n", curatedInput)
 		//Append to the slice that contains our code, we will preserve it
 		//on every iteration
 		curatedInput = re.ReplaceAllString(curatedInput, " ")
 		curatedInput = strings.TrimSpace(curatedInput)
+
+		fmt.Printf("INPUT: |%s|\n", curatedInput)
+		//Finally consider the curatedInput as part of the program
 		program = append(program, strings.Split(curatedInput, " ")...)
 	}
 	return program
 }
 
-//Can I use pointers?
+//A classic pop function for a slice
 func pop(slice []string) (string, []string) {
-	fmt.Println(slice)
 	element := slice[0]
 	slice = slice[1:]
 	return element, slice
 }
 
-func buildAST(tokens []string) ([]string, error) {
+func showAst(tree []node) {
+	//Todo
+}
+
+func atomize(token string) node {
+	//Safe string to int conversion
+	if n, err := strconv.Atoi(token); err == nil {
+		return node{number: n, symbol: "NAS"}
+	}
+	return node{number: -1, symbol: token}
+}
+
+func myAppend(expression []node, l node) []node {
+	for key, value := range expression {
+		if value.number == 0 &&
+			value.symbol == "" {
+			expression[key] = l
+			return expression
+		}
+	}
+	return append(expression, l)
+}
+
+//buildAst parses the program slice and defines the AST structure
+func buildAST(tokens []string) []string {
 	//Read an expression from a sequence of tokens."
 	if len(tokens) == 0 {
-		return nil, fmt.Errorf("Unexpected EOF")
+		fmt.Printf("[Parser] Error: Unexpected EOF")
+		os.Exit(1)
 	}
-	_, tokens = pop(tokens)
-	for tokens != nil {
-		//fmt.Println("CurrentToken:", currentToken)
-		buildAST(tokens)
+	currentToken, tokens := pop(tokens)
+	fmt.Println(currentToken)
+	if currentToken == "(" {
+		if currentToken == ")" {
+			fmt.Errorf("[Parser] Error Unexpected )")
+			os.Exit(1)
+		}
+		level := make([]node, 1) //Minimun size of a valid LISP expression
+		for _, t := range tokens {
+			fmt.Println(t)
+			if t == ")" {
+				break
+			}
+			level = myAppend(level, atomize(t))
+		}
+		fmt.Println(level)
 	}
-	return tokens, nil
+	return tokens
 }
 
 // Parse function triggers the sequence of building an AST, it returns the AST
 func Parse() []string {
 	tokens := tokenize()
-	ast, err := buildAST(tokens)
-	if err != nil {
-		fmt.Println("[!] Parser Error: %s", err)
-	}
+	ast := buildAST(tokens)
 	return ast
 }
