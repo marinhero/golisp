@@ -3,7 +3,7 @@
 ** Author: Marin Alcaraz
 ** Mail   <marin.alcaraz@gmail.com>
 ** Started on  Mon Feb 09 18:47:17 2015 Marin Alcaraz
-** Last update Mon Feb 16 18:36:53 2015 Marin Alcaraz
+** Last update Wed Mar 04 14:54:12 2015 Marin Alcaraz
  */
 
 // Based on:
@@ -31,12 +31,11 @@ import (
 
 var re = regexp.MustCompile("\\s+")
 
-// nodes are items conformed by a type and a value
-
-type node struct {
+//Node are items conformed by a type and a value
+type Node struct {
 	number int
 	symbol string
-	child  []node
+	child  []Node
 }
 
 func tokenize() []string {
@@ -67,7 +66,6 @@ func tokenize() []string {
 		curatedInput = re.ReplaceAllString(curatedInput, " ")
 		curatedInput = strings.TrimSpace(curatedInput)
 
-		fmt.Printf("INPUT: |%s|\n", curatedInput)
 		//Finally consider the curatedInput as part of the program
 		program = append(program, strings.Split(curatedInput, " ")...)
 	}
@@ -81,19 +79,19 @@ func pop(slice []string) (string, []string) {
 	return element, slice
 }
 
-func showAst(tree []node) {
+func showAst(tree []Node) {
 	//Todo
 }
 
-func atomize(token string) node {
+func atomize(token string) Node {
 	//Safe string to int conversion
 	if n, err := strconv.Atoi(token); err == nil {
-		return node{number: n, symbol: "NAS"}
+		return Node{number: n, symbol: "NAS"}
 	}
-	return node{number: -1, symbol: token}
+	return Node{number: -1, symbol: token}
 }
 
-func myAppend(expression []node, l node) []node {
+func myAppend(expression []Node, l Node) []Node {
 	for key, value := range expression {
 		if value.number == 0 &&
 			value.symbol == "" {
@@ -105,35 +103,32 @@ func myAppend(expression []node, l node) []node {
 }
 
 //buildAst parses the program slice and defines the AST structure
-func buildAST(tokens []string) []string {
+func buildAST(tokens []string) []Node {
+	var level []Node
 	//Read an expression from a sequence of tokens."
 	if len(tokens) == 0 {
-		fmt.Printf("[Parser] Error: Unexpected EOF")
-		os.Exit(1)
+		return level
 	}
-	currentToken, tokens := pop(tokens)
-	fmt.Println(currentToken)
-	if currentToken == "(" {
-		if currentToken == ")" {
-			fmt.Errorf("[Parser] Error Unexpected )")
-			os.Exit(1)
-		}
-		level := make([]node, 1) //Minimun size of a valid LISP expression
-		for _, t := range tokens {
-			fmt.Println(t)
-			if t == ")" {
-				break
-			}
-			level = myAppend(level, atomize(t))
-		}
-		fmt.Println(level)
+	token, tokens := pop(tokens)
+	if token == "" {
+		return level
 	}
-	return tokens
+	fmt.Println("Token: ", token)
+	switch token {
+	case "(":
+		level = append(level, buildAST(tokens)...)
+	case ")":
+		return level
+	default:
+		level = append(level, atomize(token))
+	}
+	return level
 }
 
 // Parse function triggers the sequence of building an AST, it returns the AST
-func Parse() []string {
+func Parse() []Node {
 	tokens := tokenize()
 	ast := buildAST(tokens)
+	fmt.Println(ast)
 	return ast
 }
