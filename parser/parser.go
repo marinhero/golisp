@@ -3,7 +3,7 @@
 ** Author: Marin Alcaraz
 ** Mail   <marin.alcaraz@gmail.com>
 ** Started on  Mon Feb 09 18:47:17 2015 Marin Alcaraz
-** Last update Wed Mar 04 14:54:12 2015 Marin Alcaraz
+** Last update Thu Mar 05 15:31:17 2015 Marin Alcaraz
  */
 
 // Based on:
@@ -102,33 +102,41 @@ func myAppend(expression []Node, l Node) []Node {
 	return append(expression, l)
 }
 
+func parseTokens(tokens []string) (Node, []string) {
+	currentToken, tokens := pop(tokens)
+	switch currentToken {
+	case "(":
+		var parent Node
+		for tokens[0] != ")" {
+			var child Node
+			child, tokens = parseTokens(tokens)
+			parent.child = append(parent.child, child)
+		}
+		_, tokens = pop(tokens)
+		return parent, tokens
+	default:
+		return atomize(currentToken), tokens
+	}
+}
+
 //buildAst parses the program slice and defines the AST structure
-func buildAST(tokens []string) []Node {
-	var level []Node
+func buildAST(tokens []string) Node {
 	//Read an expression from a sequence of tokens."
 	if len(tokens) == 0 {
-		return level
+		return Node{}
 	}
-	token, tokens := pop(tokens)
-	if token == "" {
-		return level
+	ast, rest := parseTokens(tokens)
+	if len(rest) != 0 {
+		fmt.Println("[!]Error: malformed expression->", rest)
 	}
-	fmt.Println("Token: ", token)
-	switch token {
-	case "(":
-		level = append(level, buildAST(tokens)...)
-	case ")":
-		return level
-	default:
-		level = append(level, atomize(token))
-	}
-	return level
+	return ast
 }
 
 // Parse function triggers the sequence of building an AST, it returns the AST
-func Parse() []Node {
+func Parse() Node {
 	tokens := tokenize()
 	ast := buildAST(tokens)
+	fmt.Println(len(ast.child))
 	fmt.Println(ast)
 	return ast
 }
