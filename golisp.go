@@ -8,7 +8,7 @@
 
 package main
 
-import "golisp/parser"
+import "github.com/marinhero/golisp/parser"
 
 func main() {
 	parser.Parse()
